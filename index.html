@@ -609,18 +609,26 @@ function aStep3(){
 }
 async function savePost(){
   spin(true);
-  const {error}=await db.from('posts').insert({
-    user_id:tgUser?tgUser.id.toString():null,
-    username:addData.user||null,name:addData.name||'',
-    avatar:tgUser?.photo_url||null,category:addData.cat||'Boshqalar',
-    city:addData.city||null,price:addData.price||null,
-    experience:addData.exp||null,phone:addData.phone||null,
-    bio:addData.bio||null,media:addMedia.length?addMedia:null,
-    likes:0,views:0,rating:0,rating_count:0,is_boosted:false
-  });
-  spin(false);
-  if(error){toast('Xato: '+error.message,true);return;}
-  toast("E'lon qo'shildi!");addStep=1;addData={};addMedia=[];goPage('home');
+  try{
+    const postData={
+      user_id:tgUser?tgUser.id.toString():null,
+      username:addData.user||null,
+      name:addData.name||'',
+      avatar:tgUser?.photo_url||null,
+      category:addData.cat||'Boshqalar',
+      city:addData.city||null,
+      price:addData.price||null,
+      experience:addData.exp||null,
+      phone:addData.phone||null,
+      bio:addData.bio||null,
+      media:JSON.stringify(addMedia.length?addMedia:[]),
+      likes:0,views:0,rating:0,rating_count:0,is_boosted:false
+    };
+    const {error}=await db.from('posts').insert(postData);
+    spin(false);
+    if(error){toast('Xato: '+error.message,true);return;}
+    toast("E'lon qo'shildi!");addStep=1;addData={};addMedia=[];goPage('home');
+  }catch(e){spin(false);toast('Xato: '+e.message,true);}
 }
 
 // ── PROFILE ──
