@@ -642,7 +642,7 @@ async function savePost(){
       experience:addData.exp||null,
       phone:addData.phone||null,
       bio:addData.bio||null,
-      media:JSON.stringify(addMedia.length?addMedia:[]),
+      media:JSON.stringify([]),
       likes:0,views:0,rating:0,rating_count:0,is_boosted:false
     };
     const {error}=await db.from('posts').insert(postData);
