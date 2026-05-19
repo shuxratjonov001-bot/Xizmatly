@@ -376,17 +376,34 @@ function updateUser(){
 
 // ── HOME ──
 async function loadHome(){
-  spin(true);
-  const {data}=await db.from('posts').select('*').order('created_at',{ascending:false}).limit(20);
-  spin(false);
-  allPosts=(data||[]).map(p=>{
-    if(typeof p.media==='string'){try{p.media=JSON.parse(p.media);}catch{p.media=[];}}
-    if(!Array.isArray(p.media))p.media=[];
-    return p;
-  });
-  renderCats();
-  renderTop(allPosts);
-  renderFeed(allPosts,'home-feed');
+  try{
+    spin(true);
+    const {data,error}=await db.from('posts').select('*').order('created_at',{ascending:false}).limit(20);
+    spin(false);
+    if(error){
+      console.error('Supabase error:',error);
+      toast('Yuklashda xato: '+error.message,true);
+      renderCats();
+      renderTop([]);
+      renderFeed([],'home-feed');
+      return;
+    }
+    allPosts=(data||[]).map(p=>{
+      if(typeof p.media==='string'){try{p.media=JSON.parse(p.media);}catch{p.media=[];}}
+      if(!Array.isArray(p.media))p.media=[];
+      return p;
+    });
+    renderCats();
+    renderTop(allPosts);
+    renderFeed(allPosts,'home-feed');
+  }catch(e){
+    spin(false);
+    console.error('loadHome catch:',e);
+    toast('Xato: '+e.message,true);
+    renderCats();
+    renderTop([]);
+    renderFeed([],'home-feed');
+  }
 }
 
 function renderCats(){
