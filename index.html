@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Xizmatly</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -312,8 +312,41 @@ button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 <script>
 const SB_URL='https://kcnyvguuqxwkypltiena.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtjbnl2Z3V1cXh3a3lwbHRpZW5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMTExMTcsImV4cCI6MjA5Mzg4NzExN30.2p_ZS4U6XxEVIE9DT-dSfRvyishBB6j0-urmwnASE_E';
-const {createClient}=supabase;
-const db=createClient(SB_URL,SB_KEY);
+// Custom Supabase REST client
+async function _sbReq(method,table,params={},body=null){
+  const url=new URL(SB_URL+'/rest/v1/'+table);
+  Object.entries(params).forEach(([k,v])=>{if(v!==undefined&&v!==null)url.searchParams.append(k,v);});
+  const headers={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+  const opts={method,headers};
+  if(body)opts.body=JSON.stringify(body);
+  try{
+    const r=await fetch(url.toString(),opts);
+    const txt=await r.text();
+    const data=txt?JSON.parse(txt):[];
+    if(!r.ok)return{data:null,error:{message:JSON.stringify(data)}};
+    return{data:Array.isArray(data)?data:(data?[data]:[]),error:null};
+  }catch(e){return{data:null,error:{message:e.message}};}
+}
+
+class SbQuery{
+  constructor(method,table,params={},body=null){
+    this._m=method;this._t=table;this._p={...params};this._b=body;
+  }
+  select(cols='*'){this._p.select=cols;return this;}
+  order(col,opts={}){this._p.order=col+(opts.ascending?'.asc':'.desc');return this;}
+  limit(n){this._p.limit=n;return this;}
+  eq(col,val){this._p[col+'=eq']=val;return this;}
+  then(res,rej){return _sbReq(this._m,this._t,this._p,this._b).then(res,rej);}
+}
+
+const db={
+  from:(table)=>({
+    select:(cols='*')=>new SbQuery('GET',table,{select:cols}),
+    insert:(body)=>new SbQuery('POST',table,{},body),
+    update:(body)=>new SbQuery('PATCH',table,{},body),
+    delete:()=>new SbQuery('DELETE',table,{})
+  })
+};
 
 const BOT_TOKEN='8976214135:AAHowyeJ_IHnX76tJp8r7rfEvG83qD2FlrU';
 const BOT='Xizmatly_bot';
@@ -381,8 +414,8 @@ async function loadHome(){
     const {data,error}=await db.from('posts').select('*').order('created_at',{ascending:false}).limit(20);
     spin(false);
     if(error){
-      console.error('Supabase error:',error);
-      toast('Yuklashda xato: '+error.message,true);
+      console.error('Supabase error:',JSON.stringify(error));
+      toast('Yuklashda xato: '+JSON.stringify(error),true);
       renderCats();
       renderTop([]);
       renderFeed([],'home-feed');
@@ -642,7 +675,7 @@ async function savePost(){
       experience:addData.exp||null,
       phone:addData.phone||null,
       bio:addData.bio||null,
-      media:JSON.stringify([]),
+      media:null,
       likes:0,views:0,rating:0,rating_count:0,is_boosted:false
     };
     const {error}=await db.from('posts').insert(postData);
