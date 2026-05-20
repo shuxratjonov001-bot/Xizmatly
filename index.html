@@ -316,7 +316,7 @@ const SB_KEY='sb_publishable_OzKZFBKXtFxALwdY9hpbYQ_1vXE5uI6';
 async function _sbReq(method,table,params={},body=null){
   const url=new URL(SB_URL+'/rest/v1/'+table);
   Object.entries(params).forEach(([k,v])=>{if(v!==undefined&&v!==null)url.searchParams.append(k,v);});
-  const headers={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+  const headers={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'};
   const opts={method,headers};
   if(body)opts.body=JSON.stringify(body);
   try{
